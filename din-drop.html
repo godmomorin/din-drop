@@ -557,6 +557,7 @@ function makeFruit(x, y, level, asStatic, special){
     frictionAir: 0.03,
     density: 0.0015,
     isStatic: !!asStatic,
+    slop: 0.45,
     label: "fruit",
   });
   body.level = level;
@@ -576,6 +577,7 @@ let current = null;         // 操作中の待機玉
 let nextLevel = 0;
 let canDrop = true;
 let overTimer = 0;
+let dangerActive = false;
 let lastT = 0;
 let comboCount = 0, comboTimer = 0;   // comboCount = 連鎖数
 let playerName = "";
@@ -820,10 +822,18 @@ function addScore(n){
 const ROLL_SPEED   = 5;     // この速度より遅い玉にブレーキ（大きいほど早く止まる）
 const ROLL_DAMP_X  = 0.93;  // 横速度の残し率（小さいほど強いブレーキ）
 const ROLL_DAMP_ANG= 0.8;   // 回転の残し率
+const MAX_SPEED    = 24;    // 速度の上限（密集時の暴発を抑える）
 function applyRollingFriction(){
   for(const b of fruits){
     if(b.isHeld) continue;
-    const v = b.velocity;
+    let v = b.velocity;
+    // 速度が上限を超えたら頭打ちにする（重なり解消による弾け防止）
+    const sp = Math.hypot(v.x, v.y);
+    if(sp > MAX_SPEED){
+      const k = MAX_SPEED / sp;
+      Body.setVelocity(b, { x: v.x*k, y: v.y*k });
+      v = b.velocity;
+    }
     if(Math.hypot(v.x, v.y) < ROLL_SPEED){
       Body.setVelocity(b, { x: v.x*ROLL_DAMP_X, y: v.y });
       Body.setAngularVelocity(b, b.angularVelocity*ROLL_DAMP_ANG);
@@ -971,6 +981,7 @@ function checkOver(dt){
     if(b.position.y - b.r < dangerDepth && speed < 0.6){ danger = true; break; }
   }
   if(danger){ overTimer += dt; } else { overTimer = Math.max(0, overTimer-dt*2); }
+  dangerActive = danger;
   if(overTimer > 1500) gameOver();
 }
 
@@ -978,10 +989,17 @@ function checkOver(dt){
 function draw(){
   ctx.clearRect(0,0,W,H);
 
-  // 危険ライン
+  // 危険ライン（危険状態のときは赤くゆっくり点滅）
   ctx.save();
-  ctx.strokeStyle = "rgba(245,196,81,0.5)";
-  ctx.lineWidth = 2; ctx.setLineDash([7,7]);
+  if(dangerActive){
+    const pulse = 0.5 + 0.45 * Math.sin(performance.now() / 280);  // ゆっくり明滅
+    ctx.strokeStyle = "rgba(230,40,80," + pulse.toFixed(3) + ")";
+    ctx.lineWidth = 3.5;
+  } else {
+    ctx.strokeStyle = "rgba(245,196,81,0.5)";
+    ctx.lineWidth = 2;
+  }
+  ctx.setLineDash([7,7]);
   ctx.beginPath(); ctx.moveTo(0,dangerDepth); ctx.lineTo(W,dangerDepth);
   ctx.stroke();
   ctx.restore();
