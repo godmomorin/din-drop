@@ -59,7 +59,7 @@
 
   /* ---- ヘッダー ---- */
   header{
-    flex:0 0 auto; padding:10px 14px 4px;
+    flex:0 0 auto; padding:26px 14px 4px;
     display:flex; align-items:flex-end; justify-content:space-between; gap:8px;
   }
   .brand{ display:flex; flex-direction:column; line-height:1; }
@@ -82,7 +82,7 @@
   #stage{
     position:relative; flex:1 1 auto; min-height:0;
     display:flex; align-items:center; justify-content:center;
-    padding:6px 12px 14px;
+    padding:18px 12px 14px;
   }
   #bottle{
     position:relative;
@@ -443,7 +443,7 @@ let W, H, DPR, dangerDepth;
 function layout(){
   const stage = document.getElementById("stage");
   const availW = Math.min(stage.clientWidth - 24, 406);
-  const availH = stage.clientHeight - 20;
+  const availH = stage.clientHeight - 32;
   W = Math.min(availW, availH / 1.4);
   H = W * 1.4;
   bottle.style.width = W + "px";
