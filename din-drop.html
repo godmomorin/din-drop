@@ -331,6 +331,7 @@
       <div class="home-rank-wrap" id="homeRankWrap"><div class="rank-loading">読み込み中…</div></div>
     </div>
     <div class="rank-mode"></div>
+    <button class="btn shu" id="homeShareBtn" style="padding:11px 22px;font-size:14px;">📣 Xでシェア</button>
     <div>
       <span class="how-toggle" id="howToggle">遊び方</span>　<span class="how-toggle" id="soundBtn2">🔊 音量</span>
     </div>
@@ -495,6 +496,8 @@ function layout(){
   const stage = document.getElementById("stage");
   const availW = Math.min(stage.clientWidth - 24, 406);
   const availH = stage.clientHeight - 32;
+  // 回転直後などサイズが取れない瞬間は、前のサイズを維持して壊れないようにする
+  if(!isFinite(availW) || !isFinite(availH) || availW < 80 || availH < 80) return false;
   W = Math.min(availW, availH / 1.4);
   H = W * 1.4;
   bottle.style.width = W + "px";
@@ -504,6 +507,7 @@ function layout(){
   cv.style.width = W + "px"; cv.style.height = H + "px";
   ctx.setTransform(DPR,0,0,DPR,0,0);
   dangerDepth = W * 0.16;
+  return true;
 }
 
 /* ---------- 物理ワールド ---------- */
@@ -1339,6 +1343,12 @@ document.getElementById("retryBtn").onclick = ()=>{
   beginGame(gameMode);
 };
 document.getElementById("overHomeBtn").onclick = goHome;
+document.getElementById("homeShareBtn").onclick = ()=>{
+  const text = "ディン落としゲーム🏆 カイディンディンを合体させて育てる落としゲーム！ハイスコアを競おう";
+  const url = "https://godmomorin.github.io/din-drop/din-drop.html";
+  const tw = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text + "\n") + "&url=" + encodeURIComponent(url) + "&hashtags=" + encodeURIComponent("ディン落としゲーム");
+  window.open(tw, "_blank");
+};
 
 /* ---------- 起動 ---------- */
 function start(){
@@ -1347,11 +1357,10 @@ function start(){
   lastT = performance.now();
   requestAnimationFrame(loop);
 }
-window.addEventListener("resize", ()=>{
-  // 盤サイズ変化に追随（簡易：再レイアウト＋壁再構築）
-  const wasPlaying = state;
-  layout();
-  // 壁だけ作り直し
+function relayout(){
+  const ok = layout();
+  if(!ok || !isFinite(W) || !isFinite(H) || W < 80) return;
+  // 壁を作り直し
   for(const w of walls) World.remove(world, w);
   const t=60, opt={isStatic:true,restitution:0,friction:0.95};
   walls=[
@@ -1360,7 +1369,28 @@ window.addEventListener("resize", ()=>{
     Bodies.rectangle(W+t/2-2,H/2,t,H*3,opt),
   ];
   World.add(world,walls);
-});
+  // ディンが盤の外に出ないように位置を補正（消えるバグ対策）
+  for(const f of fruits){
+    const r = f.r || 12;
+    const x = Math.min(Math.max(f.position.x, r+1), W-r-1);
+    const y = Math.min(Math.max(f.position.y, r+1), H-r-1);
+    Body.setPosition(f, { x, y });
+    Body.setVelocity(f, { x:0, y:0 });
+  }
+}
+window.addEventListener("resize", relayout);
+window.addEventListener("orientationchange", ()=>{ setTimeout(relayout, 250); });
+
+/* 画面の拡大（ダブルタップ・ピンチ）を無効化 */
+let _lastTouchEnd = 0;
+document.addEventListener("touchend", function(e){
+  const now = Date.now();
+  if(now - _lastTouchEnd <= 300){ e.preventDefault(); }
+  _lastTouchEnd = now;
+}, { passive:false });
+document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, { passive:false });
+document.addEventListener("dblclick", function(e){ e.preventDefault(); }, { passive:false });
+
 start();
 </script>
 </body>
