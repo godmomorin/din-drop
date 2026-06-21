@@ -868,30 +868,52 @@ function tone(freq, dur, type="sine", gain=0.18){
     o.start(); o.stop(a.currentTime+dur);
   }catch(e){}
 }
-/* ---- BGM（2曲を交互に連続再生） ---- */
+/* ---- BGM（6曲・番号と曲を直結／ランダム連続再生） ---- */
 let bgmBuffers = [], bgmIndex = 0, bgmSource = null, bgmOn = false;
+let bgmLoaded = false, bgmLoading = null;
 async function loadBGM(){
-  if(bgmBuffers.length) return;
-  const ac = audio();
-  for(const url of BGM_SRCS){
-    try{
-      const r = await fetch(url);
-      if(!r.ok) throw new Error(r.status);
-      bgmBuffers.push(await ac.decodeAudioData(await r.arrayBuffer()));
-    }catch(e){ console.warn("bgm load失敗:", url, e); }
-  }
+  if(bgmLoaded) return;
+  if(bgmLoading) return bgmLoading;
+  bgmLoading = (async ()=>{
+    const ac = audio();
+    bgmBuffers = new Array(BGM_SRCS.length).fill(null);  // 番号を固定（失敗してもズレない）
+    for(let i=0; i<BGM_SRCS.length; i++){
+      try{
+        const r = await fetch(BGM_SRCS[i]);
+        if(!r.ok) throw new Error(r.status);
+        bgmBuffers[i] = await ac.decodeAudioData(await r.arrayBuffer());
+      }catch(e){ console.warn("bgm load失敗:", BGM_SRCS[i], e); }
+    }
+    bgmLoaded = true;
+  })();
+  return bgmLoading;
 }
+function validBgmIndices(){ return bgmBuffers.map((b,i)=> b?i:-1).filter(i=> i>=0); }
 function startBGM(){
-  if(!bgmBuffers.length){ return; }
-  bgmOn = true; bgmIndex = Math.floor(Math.random()*bgmBuffers.length); playBGMTrack();
+  const valid = validBgmIndices();
+  if(!valid.length) return;
+  bgmOn = true;
+  bgmIndex = valid[Math.floor(Math.random()*valid.length)];
+  playBGMTrack();
 }
 function playBGMTrack(){
-  if(!bgmOn || !bgmBuffers.length) return;
+  if(!bgmOn) return;
+  const valid = validBgmIndices();
+  if(!valid.length) return;
+  if(!bgmBuffers[bgmIndex]) bgmIndex = valid[Math.floor(Math.random()*valid.length)];
   const ac = audio();
   bgmSource = ac.createBufferSource();
-  bgmSource.buffer = bgmBuffers[bgmIndex % bgmBuffers.length];
+  bgmSource.buffer = bgmBuffers[bgmIndex];
   bgmSource.connect(bgmGain);
-  bgmSource.onended = ()=>{ if(bgmOn){ let n=bgmIndex; if(bgmBuffers.length>1){ do{ n=Math.floor(Math.random()*bgmBuffers.length); }while(n===bgmIndex); } bgmIndex=n; playBGMTrack(); } };
+  bgmSource.onended = ()=>{ if(bgmOn){
+    const v = validBgmIndices();
+    if(v.length){
+      let n = bgmIndex;
+      if(v.length > 1){ do{ n = v[Math.floor(Math.random()*v.length)]; }while(n===bgmIndex); }
+      bgmIndex = n;
+    }
+    playBGMTrack();
+  } };
   try{ bgmSource.start(); }catch(e){}
 }
 function stopBGM(){
@@ -902,12 +924,12 @@ async function selectBGM(i){
   const ac = audio();
   if(ac.state === "suspended"){ try{ await ac.resume(); }catch(e){} }
   await loadBGM();
-  if(!bgmBuffers.length) return;
+  if(!bgmBuffers[i]){ console.warn("曲", i+1, "は読み込めていません"); return; }
   bgmOn = true;
-  bgmIndex = i % bgmBuffers.length;
+  bgmIndex = i;
   if(bgmSource){ try{ bgmSource.onended=null; bgmSource.stop(); }catch(e){} bgmSource=null; }
   playBGMTrack();
-  document.querySelectorAll("#bgmPicker .bgm-btn").forEach((b,idx)=> b.classList.toggle("on", idx===bgmIndex));
+  document.querySelectorAll("#bgmPicker .bgm-btn").forEach((b,idx)=> b.classList.toggle("on", idx===i));
 }
 function sfxPop(lv){
   const base = 220 + lv*55;
