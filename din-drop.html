@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ディン落としゲーム</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ディン落とし">
+<link rel="apple-touch-icon" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ディン落としゲーム｜カイディンディン">
+<meta property="og:description" content="カイディンディンを合体させて育てる落としゲーム！ハイスコアを競おう🏆">
+<meta property="og:image" content="https://godmomorin.github.io/din-drop/ogp.png">
+<meta property="og:url" content="https://godmomorin.github.io/din-drop/din-drop.html">
+<meta name="twitter:card" content="summary_large_image">
 
 <!-- ===================================================================
   ★ Supabaseオンライン順位の設定（ここに自分の値を入れるとオンライン化）★
@@ -106,6 +116,7 @@
     color:#3a4250; font-size:11px; font-weight:800; letter-spacing:1px;
     box-shadow:0 2px 7px rgba(40,55,75,.15); backdrop-filter:blur(2px);
   }
+  #hold{ margin-left:auto; }
   #mission{ margin-left:auto; border-color:#2fc6ff; }
   #mission span{ color:#0f9bd0; }
   #hold.empty .em{ display:none; }
@@ -238,6 +249,11 @@
   /* モード選択 */
   .mode-row{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; }
   /* ランキングタブ */
+  .period-tabs{ display:flex; gap:6px; margin-bottom:6px; }
+  .period-tabs .ptab{ flex:1; font-family:"M PLUS Rounded 1c"; font-weight:800; font-size:12px;
+    color:#5d6b7e; background:rgba(255,255,255,.5); border:2px solid #bcc7d5; border-radius:10px;
+    padding:7px 4px; cursor:pointer; }
+  .period-tabs .ptab.on{ color:#fff; background:linear-gradient(180deg,#ffb24f,#f0871f); border-color:#f0871f; }
   .rank-tabs{ display:flex; gap:6px; margin-bottom:0; }
   .rank-tabs .tab{ flex:1; font-family:"M PLUS Rounded 1c"; font-weight:800; font-size:12px;
     color:#5d6b7e; background:rgba(255,255,255,.5); border:2px solid #bcc7d5; border-radius:10px 10px 0 0;
@@ -247,6 +263,14 @@
     background:rgba(255,255,255,.5); border:2px solid #bcc7d5; border-top:none; border-radius:0 0 12px 12px; padding:6px; }
   .how-toggle{ font-size:12px; color:#1f8fbf; text-decoration:underline; cursor:pointer; }
   .hidden{ display:none; }
+  @keyframes shakeAnim{ 0%{transform:translate(0,0)} 20%{transform:translate(-3px,1px)} 40%{transform:translate(3px,-2px)} 60%{transform:translate(-3px,2px)} 80%{transform:translate(2px,-1px)} 100%{transform:translate(0,0)} }
+  @keyframes shakeStrong{ 0%{transform:translate(0,0)} 15%{transform:translate(-7px,3px)} 30%{transform:translate(8px,-4px)} 45%{transform:translate(-8px,4px)} 60%{transform:translate(7px,-3px)} 75%{transform:translate(-5px,2px)} 100%{transform:translate(0,0)} }
+  .shake{ animation:shakeAnim .35s ease; }
+  .shake-strong{ animation:shakeStrong .5s ease; }
+  @keyframes bestPop{ 0%{transform:scale(.6);opacity:0} 50%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  #bestLine.newbest{ color:#f0871f; font-size:18px; animation:bestPop .5s ease; text-shadow:0 1px 0 #fff; }
+  .home-best{ font-size:13px; font-weight:800; color:#5d6b7e; line-height:1.6; }
+  .home-best b{ color:#f0871f; }
 </style>
 </head>
 <body>
@@ -276,7 +300,6 @@
       <div id="topbar">
         <div id="next"><img class="em" id="nextEm" alt=""><span>つぎ</span></div>
         <div id="hold"><img class="em" id="holdEm" alt=""><span id="holdLabel">ホールド</span></div>
-        <div id="mission"><span>お題</span><img class="em" id="missionThumb" alt=""></div>
       </div>
       <div id="combo"></div>
     </div>
@@ -295,7 +318,12 @@
       <button class="btn" id="playNormalBtn">あそぶ（通常）</button>
       <button class="btn shu" id="playTaBtn">5分タイムアタック</button>
     </div>
+    <div id="homeBest" class="home-best"></div>
     <div style="width:100%;max-width:330px;">
+      <div class="period-tabs" id="periodTabs">
+        <div class="ptab on" data-period="all">🏆 全期間</div>
+        <div class="ptab" data-period="week">🗓 今週</div>
+      </div>
       <div class="rank-tabs" id="rankTabs">
         <div class="tab on" data-mode="normal">通常 TOP20</div>
         <div class="tab" data-mode="timeattack">タイムアタック TOP20</div>
@@ -310,12 +338,11 @@
       指で<b>左右に動かして</b>、はなすと<b>ポトッと落下</b>。<br>
       おなじディンがぶつかると<b>合体して進化</b>。連続合体で<b>連鎖ボーナス</b>！<br>
       虹フチの<b>オールマイディン</b>はどのディンとも合体（最大のディンには効かない）。最大のディン同士は<b>消滅して大量得点</b>！<br>
-      <b>ホールド</b>で1つ温存。<b>お題</b>のディンを作るとボーナス！
+      <b>ホールド</b>で1つ温存できる！
       <hr style="border:none;border-top:1px dashed #bcc7d5;margin:12px 0;">
       <b style="color:#3a4250;">🏆 スコアのしくみ</b><br>
       ・<b>進化</b>：大きく育てるほど高得点。2番目=3点 → だんだん増えて → 最大の1つ手前=66点、<b>最大のディンを作ると78点</b><br>
       ・<b>連鎖</b>（1秒以内に続けて合体）：2連鎖で<b>1.5倍</b>、3連鎖で<b>2倍</b>、4連鎖で<b>2.5倍</b>…と倍率アップ<br>
-      ・<b>お題クリア</b>（指定のディンを作る）：<b>+400点</b>（クリアのたびに+100点 → 500、600…）<br>
       ・<b>最大のディン同士を合体</b>（お互い消滅）：<b>+300点</b>。これも連鎖で倍に！
     </div>
   </div>
@@ -324,11 +351,13 @@
   <div class="screen hidden" id="overScreen">
     <div class="final-score"><span id="finalScore">0</span><small>てんすう</small></div>
     <div id="overMode" style="color:#5d6b7e;font-weight:800;"></div>
+    <div id="bestLine" style="color:#5d6b7e;font-weight:800;"></div>
     <div class="name-row">
       <input id="nameInput" maxlength="12" placeholder="ニックネーム（12文字まで）">
       <button class="btn shu" id="saveBtn" style="padding:12px 18px;font-size:14px;">登録</button>
     </div>
     <div class="rank-mode"></div>
+    <button class="btn shu" id="shareBtn" style="padding:12px 26px;font-size:15px;">📣 スコアをシェア</button>
     <div style="display:flex;gap:10px;">
       <button class="btn ghost" id="overHomeBtn">トップへ</button>
       <button class="btn" id="retryBtn" style="padding:12px 28px;">もう一回</button>
@@ -457,7 +486,6 @@ const nextEmEl = document.getElementById("nextEm");
 const holdEm = document.getElementById("holdEm");
 const holdBox = document.getElementById("hold");
 const holdLabel = document.getElementById("holdLabel");
-const missionThumb = document.getElementById("missionThumb");
 const comboEl = document.getElementById("combo");
 const chainEl = document.getElementById("chain");
 
@@ -547,10 +575,13 @@ let overTimer = 0;
 let lastT = 0;
 let comboCount = 0, comboTimer = 0;   // comboCount = 連鎖数
 let playerName = "";
+try{ playerName = localStorage.getItem("dindrop_name") || ""; }catch(e){}
+let bestScores = { normal:0, timeattack:0 };
+try{ const b=JSON.parse(localStorage.getItem("dindrop_best")||"null"); if(b){ bestScores.normal=b.normal||0; bestScores.timeattack=b.timeattack||0; } }catch(e){}
+function saveBest(){ try{ localStorage.setItem("dindrop_best", JSON.stringify(bestScores)); }catch(e){} }
 // ホールド
 let heldLevel = null, holdUsed = false;
 // ミッション
-let missionLevel = 4, missionCount = 0;
 // 特殊玉の出現率
 const WILD_RATE = 0.07;
 // モード・タイムアタック
@@ -565,12 +596,11 @@ function newGame(mode){
   for(const b of fruits) World.remove(world, b);
   fruits.clear();
   score = 0; overTimer = 0; comboCount = 0;
-  heldLevel = null; holdUsed = false; missionCount = 0;
+  heldLevel = null; holdUsed = false;
   applyGravity();
   scoreEl.textContent = "0";
   state = "playing";
   nextLevel = rndDropLevel();
-  setMission(true);
   updateHoldUI();
   spawnCurrent();
   // タイマー
@@ -707,11 +737,11 @@ function resolveMerges(){
     if(lv >= MAX_LEVEL){
       addScore(Math.round(300 * chainMult()));
       flashCombo("ポンッ！MAX");
+      screenShake(true);
     } else {
       const nf = makeFruit(mx, my, lv+1, false);
       Body.setVelocity(nf, { x:0, y:0 });
       addScore(Math.round(MERGE_BONUS_TABLE[lv+1] * chainMult()));
-      checkMission(lv+1);
     }
   }
 }
@@ -760,7 +790,6 @@ function resolveWild(){
       const nf = makeFruit(mx, my, lv+1, false);
       Body.setVelocity(nf, { x:0, y:0 });
       addScore(Math.round(MERGE_BONUS_TABLE[lv+1]*chainMult()));
-      checkMission(lv+1);
     }
     any = true;
   }
@@ -768,36 +797,15 @@ function resolveWild(){
 }
 
 /* ---------- 連鎖 ---------- */
+function screenShake(strong){ /* 画面の揺れは無効 */ }
 function chainMult(){ return 1 + Math.max(0, comboCount-1)*0.5; }  // 1連鎖=1.0,2連鎖=1.5...
 function bumpChain(){
   comboCount++;
   comboTimer = 1000;
   if(comboCount >= 2) flashCombo(comboCount + "れんさ ×" + chainMult().toFixed(1));
+  if(comboCount >= 3) screenShake(comboCount >= 5);
 }
 
-/* ---------- お題ミッション ---------- */
-function setMission(reset){
-  if(reset) missionLevel = 4;
-  else {
-    let nx;
-    do { nx = 3 + Math.floor(Math.random()*(MAX_LEVEL-3)); } while(nx===missionLevel);
-    missionLevel = nx;
-  }
-  updateMissionUI();
-}
-function checkMission(level){
-  if(level === missionLevel){
-    missionCount++;
-    const bonus = 300 + missionCount*100;
-    addScore(bonus);
-    flashCombo("お題クリア +" + bonus);
-    sfxMission();
-    setMission(false);
-  }
-}
-function updateMissionUI(){
-  if(missionThumb) missionThumb.src = FRUITS[missionLevel].src;
-}
 
 function addScore(n){
   score += n;
@@ -1086,6 +1094,19 @@ function gameOver(){
   document.getElementById("ctrlbar").style.visibility = "hidden";
   document.getElementById("finalScore").textContent = score.toLocaleString();
   document.getElementById("overMode").textContent = (gameMode==="timeattack") ? "5分タイムアタック" : "通常モード";
+  // 自己ベスト判定
+  const prevBest = bestScores[gameMode] || 0;
+  const isNewBest = score > prevBest;
+  if(isNewBest){ bestScores[gameMode] = score; saveBest(); }
+  const bestEl = document.getElementById("bestLine");
+  if(isNewBest){
+    bestEl.innerHTML = '🎉 <b>自己ベスト更新！</b>';
+    bestEl.classList.add("newbest");
+    sfxMission();
+  } else {
+    bestEl.innerHTML = '自己ベスト：' + (bestScores[gameMode]||0).toLocaleString() + ' てん';
+    bestEl.classList.remove("newbest");
+  }
   document.getElementById("nameInput").value = playerName;
   document.getElementById("overScreen").classList.remove("hidden");
 }
@@ -1169,6 +1190,12 @@ function initRanking(){
   document.querySelectorAll(".rank-mode").forEach(el=> el.innerHTML = txt);
 }
 let offlineRanks = { normal:[], timeattack:[] };
+function weekStartISO(){
+  const d = new Date();
+  const day = (d.getDay() + 6) % 7;          // 月曜=0
+  d.setHours(0,0,0,0); d.setDate(d.getDate() - day);
+  return d.toISOString();
+}
 async function saveScore(name, sc, mode){
   playerName = name;
   if(online){
@@ -1178,24 +1205,28 @@ async function saveScore(name, sc, mode){
       return true;
     }catch(e){ console.warn("save失敗→オフライン", e); }
   }
-  (offlineRanks[mode] || (offlineRanks[mode]=[])).push({ name, score: sc });
+  (offlineRanks[mode] || (offlineRanks[mode]=[])).push({ name, score: sc, ts: Date.now() });
   return false;
 }
-async function fetchTop(mode){
+async function fetchTop(mode, period){
   if(online){
     try{
-      const { data, error } = await sb.from(window.RANKING_TABLE)
-        .select("name,score").eq("mode",mode).order("score",{ascending:false}).limit(20);
+      let q = sb.from(window.RANKING_TABLE)
+        .select("name,score").eq("mode",mode);
+      if(period === "week") q = q.gte("created_at", weekStartISO());
+      const { data, error } = await q.order("score",{ascending:false}).limit(20);
       if(error) throw error;
       return data || [];
     }catch(e){ console.warn("取得失敗→オフライン", e); }
   }
-  return [...(offlineRanks[mode]||[])].sort((a,b)=>b.score-a.score).slice(0,20);
+  let arr = [...(offlineRanks[mode]||[])];
+  if(period === "week"){ const t = Date.parse(weekStartISO()); arr = arr.filter(r => (r.ts||0) >= t); }
+  return arr.sort((a,b)=>b.score-a.score).slice(0,20);
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-async function renderRankInto(wrap, mode, myScore){
+async function renderRankInto(wrap, mode, period, myScore){
   wrap.innerHTML = '<div class="rank-loading">読み込み中…</div>';
-  const rows = await fetchTop(mode);
+  const rows = await fetchTop(mode, period);
   if(!rows.length){ wrap.innerHTML = '<div class="rank-loading">まだ記録がありません。<br>一番乗りを目指そう！</div>'; return; }
   let html = '<table class="rank">';
   rows.forEach((r,i)=>{
@@ -1207,12 +1238,17 @@ async function renderRankInto(wrap, mode, myScore){
   html += "</table>";
   wrap.innerHTML = html;
 }
-let homeRankMode = "normal";
+let homeRankMode = "normal", homeRankPeriod = "all";
 function showHomeRanking(){
+  const hb = document.getElementById("homeBest");
+  if(hb) hb.innerHTML = '自己ベスト　通常 <b>' + (bestScores.normal||0).toLocaleString() + '</b>　/　タイムアタック <b>' + (bestScores.timeattack||0).toLocaleString() + '</b>';
   document.querySelectorAll("#rankTabs .tab").forEach(t=>{
     t.classList.toggle("on", t.dataset.mode===homeRankMode);
   });
-  renderRankInto(document.getElementById("homeRankWrap"), homeRankMode, null);
+  document.querySelectorAll("#periodTabs .ptab").forEach(t=>{
+    t.classList.toggle("on", t.dataset.period===homeRankPeriod);
+  });
+  renderRankInto(document.getElementById("homeRankWrap"), homeRankMode, homeRankPeriod, null);
 }
 function goHome(){
   document.getElementById("overScreen").classList.add("hidden");
@@ -1267,6 +1303,9 @@ document.querySelectorAll("#bgmPicker .bgm-btn").forEach(b=>{
 document.querySelectorAll("#rankTabs .tab").forEach(t=>{
   t.onclick = ()=>{ homeRankMode = t.dataset.mode; showHomeRanking(); };
 });
+document.querySelectorAll("#periodTabs .ptab").forEach(t=>{
+  t.onclick = ()=>{ homeRankPeriod = t.dataset.period; showHomeRanking(); };
+});
 
 // 遊び方の開閉
 document.getElementById("howToggle").onclick = ()=>{
@@ -1276,11 +1315,24 @@ document.getElementById("howToggle").onclick = ()=>{
 // ゲームオーバー画面
 document.getElementById("saveBtn").onclick = async (e)=>{
   const name = (document.getElementById("nameInput").value || "ななし").trim().slice(0,12);
+  playerName = name;
+  try{ localStorage.setItem("dindrop_name", name); }catch(err){}
   e.target.disabled = true; e.target.textContent = "…";
   await saveScore(name, score, gameMode);
   homeRankMode = gameMode;
   e.target.disabled = false; e.target.textContent = "登録";
   goHome();
+};
+document.getElementById("shareBtn").onclick = ()=>{
+  const modeTxt = (gameMode==="timeattack") ? "5分タイムアタック" : "通常モード";
+  const text = `ディン落としゲーム（${modeTxt}）で ${score.toLocaleString()}点！🏆`;
+  const url = "https://godmomorin.github.io/din-drop/din-drop.html";
+  if(navigator.share){
+    navigator.share({ title:"ディン落としゲーム", text, url }).catch(()=>{});
+  } else {
+    const tw = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text + "\n") + "&url=" + encodeURIComponent(url) + "&hashtags=" + encodeURIComponent("ディン落としゲーム");
+    window.open(tw, "_blank");
+  }
 };
 document.getElementById("retryBtn").onclick = ()=>{
   document.getElementById("overScreen").classList.add("hidden");
