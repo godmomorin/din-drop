@@ -205,7 +205,7 @@
   .rank-loading{ color:#7a8696; font-size:13px; padding:20px; }
 
   /* 上部操作バー */
-  .ctrlbar{ flex:0 0 auto; display:none; align-items:center; gap:8px; padding:4px 14px 0; }
+  .ctrlbar{ flex:0 0 auto; display:flex; visibility:hidden; align-items:center; gap:8px; padding:4px 14px 0; }
   .ctrl-btn{ font-family:"M PLUS Rounded 1c"; font-weight:800; font-size:13px; color:#2b3440;
     background:linear-gradient(180deg,#fff,#cfd8e2); border:2px solid #fff; border-radius:10px;
     padding:7px 12px; box-shadow:0 3px 0 #93a0b0,0 4px 8px rgba(40,55,75,.25); cursor:pointer; }
@@ -557,7 +557,7 @@ function newGame(mode){
   const ac = audio(); if(ac.state==="suspended") ac.resume();
   startBGM();
   // 上部バー表示
-  document.getElementById("ctrlbar").style.display = "flex";
+  document.getElementById("ctrlbar").style.visibility = "visible";
   resetHomeBtn();
 }
 
@@ -1027,7 +1027,7 @@ function gameOver(){
   state = "over";
   stopBGM();
   sfxOver();
-  document.getElementById("ctrlbar").style.display = "none";
+  document.getElementById("ctrlbar").style.visibility = "hidden";
   document.getElementById("finalScore").textContent = score.toLocaleString();
   document.getElementById("overMode").textContent = (gameMode==="timeattack") ? "5分タイムアタック" : "通常モード";
   document.getElementById("nameInput").value = playerName;
@@ -1063,7 +1063,7 @@ function homeTap(){
   resetHomeBtn();
   stopBGM();
   state = "ready";
-  document.getElementById("ctrlbar").style.display = "none";
+  document.getElementById("ctrlbar").style.visibility = "hidden";
   goHome();
 }
 
