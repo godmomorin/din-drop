@@ -333,7 +333,16 @@
     <div class="rank-mode"></div>
     <button class="btn shu" id="homeShareBtn" style="padding:11px 22px;font-size:14px;">📣 Xでシェア</button>
     <div>
-      <span class="how-toggle" id="howToggle">遊び方</span>　<span class="how-toggle" id="soundBtn2">🔊 音量</span>
+      <span class="how-toggle" id="howToggle">遊び方</span>　<span class="how-toggle" id="soundBtn2">🔊 音量</span>　<span class="how-toggle" id="homeAddToggle">📲 ホームに追加</span>
+    </div>
+    <div class="how hidden" id="homeAddBox" style="border:2px solid #2fc6ff;">
+      <b style="color:#0f9bd0;">📲 アプリのようにホーム画面に追加！</b><br>
+      <b>Safari</b>でこのページを開いて…<br>
+      ① 下の<b>共有ボタン</b>（□に↑のマーク）をタップ<br>
+      ② メニューを下にスクロールして<b>「ホーム画面に追加」</b><br>
+      ③ 右上の<b>「追加」</b>をタップ<br>
+      これでアイコンから全画面でサクッと遊べます！<br>
+      <span style="font-size:11px;color:#8a96a6;">※「ホーム画面に追加」はSafariのみ。他のブラウザでは出ないことがあります</span>
     </div>
     <div class="how hidden" id="howBox">
       指で<b>左右に動かして</b>、はなすと<b>ポトッと落下</b>。<br>
@@ -1332,6 +1341,9 @@ document.querySelectorAll("#periodTabs .ptab").forEach(t=>{
 // 遊び方の開閉
 document.getElementById("howToggle").onclick = ()=>{
   document.getElementById("howBox").classList.toggle("hidden");
+};
+document.getElementById("homeAddToggle").onclick = ()=>{
+  document.getElementById("homeAddBox").classList.toggle("hidden");
 };
 
 // ゲームオーバー画面
